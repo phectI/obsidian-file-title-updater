@@ -541,17 +541,11 @@ export default class FileTitleUpdaterPlugin extends Plugin {
         const frontmatter =
             this.app.metadataCache.getFileCache(file)?.frontmatter;
         const titleField = this.getFrontmatterTitleField();
-        if (
-            !frontmatter ||
-            !Object.prototype.hasOwnProperty.call(frontmatter, titleField)
-        ) {
+        if (!frontmatter || !frontmatter[titleField]) {
             if (this.settings.fallbackToFilenameWhenFrontmatterTitleMissing) {
                 await this.syncFromFilename(file);
                 return;
             }
-            throw new Error(`No "${titleField}" found in frontmatter`);
-        }
-        if (!frontmatter[titleField]) {
             throw new Error(`No "${titleField}" found in frontmatter`);
         }
 
@@ -717,6 +711,12 @@ export default class FileTitleUpdaterPlugin extends Plugin {
     }
 
     async updateFilename(file: TFile, title: string) {
+        if (!title.trim()) {
+            throw new Error(
+                "Cannot rename file because the title is empty after sanitization",
+            );
+        }
+
         if (file.basename !== title) {
             // Store the old filename for alias feature
             const oldFilename = file.basename;

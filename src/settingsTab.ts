@@ -59,9 +59,9 @@ export class SettingsTab extends PluginSettingTab {
             );
 
         new Setting(containerEl)
-            .setName("Use filename when frontmatter title is missing")
+            .setName("Use filename when frontmatter title is missing or empty")
             .setDesc(
-                "When syncing from frontmatter, use the filename as the source if the configured frontmatter title field is missing.",
+                "When syncing from frontmatter, use the filename as the source if the configured frontmatter title field is missing or empty.",
             )
             .addToggle((toggle) =>
                 toggle
