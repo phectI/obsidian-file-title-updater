@@ -23,6 +23,8 @@ export enum SyncMode {
 
 export interface PluginSettings {
     defaultTitleSource: TitleSource;
+    fallbackToFilenameWhenFrontmatterTitleMissing: boolean;
+    truncateLongTitles: boolean;
     illegalCharHandling: IllegalCharacterHandling;
     customReplacement: string;
     updateOtherTitlesWithSanitizedVersion: boolean;
@@ -64,6 +66,8 @@ export interface PluginSettings {
 
 export const DEFAULT_SETTINGS: PluginSettings = {
     defaultTitleSource: TitleSource.FILENAME,
+    fallbackToFilenameWhenFrontmatterTitleMissing: false,
+    truncateLongTitles: false,
     illegalCharHandling: IllegalCharacterHandling.REMOVE,
     customReplacement: "",
     updateOtherTitlesWithSanitizedVersion: false,

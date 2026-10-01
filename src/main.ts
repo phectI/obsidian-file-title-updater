@@ -21,6 +21,23 @@ import {
 import { NotificationHelper } from "./notificationHelper";
 import { BulkUpdateConfirmationModal } from "./confirmationModal";
 
+const MAX_FILENAME_LENGTH_BYTES = 241;
+
+function truncateUtf8Bytes(value: string, maximumLength: number): string {
+    let result = "";
+    let byteLength = 0;
+    const encoder = new TextEncoder();
+    for (const character of value) {
+        const characterLength = encoder.encode(character).length;
+        if (byteLength + characterLength > maximumLength) {
+            return result;
+        }
+        result += character;
+        byteLength += characterLength;
+    }
+    return result;
+}
+
 export default class FileTitleUpdaterPlugin extends Plugin {
     settings: PluginSettings;
     notificationHelper: NotificationHelper;
@@ -524,7 +541,17 @@ export default class FileTitleUpdaterPlugin extends Plugin {
         const frontmatter =
             this.app.metadataCache.getFileCache(file)?.frontmatter;
         const titleField = this.getFrontmatterTitleField();
-        if (!frontmatter || !frontmatter[titleField]) {
+        if (
+            !frontmatter ||
+            !Object.prototype.hasOwnProperty.call(frontmatter, titleField)
+        ) {
+            if (this.settings.fallbackToFilenameWhenFrontmatterTitleMissing) {
+                await this.syncFromFilename(file);
+                return;
+            }
+            throw new Error(`No "${titleField}" found in frontmatter`);
+        }
+        if (!frontmatter[titleField]) {
             throw new Error(`No "${titleField}" found in frontmatter`);
         }
 
@@ -533,18 +560,22 @@ export default class FileTitleUpdaterPlugin extends Plugin {
         // When syncing from frontmatter to filename, we need to sanitize the title
         // for illegal characters that aren't allowed in filenames
         const sanitizedTitle = this.sanitizeFilename(title);
+        const filenameTitle =
+            this.settings.truncateLongTitles && this.shouldSyncFilename()
+                ? truncateUtf8Bytes(sanitizedTitle, MAX_FILENAME_LENGTH_BYTES)
+                : sanitizedTitle;
 
-        // Check if sanitization changed the title
-        if (sanitizedTitle !== title) {
+        // Check if sanitization or truncation changed the title
+        if (filenameTitle !== title) {
             // If we should update all titles with the sanitized version
             if (this.settings.updateOtherTitlesWithSanitizedVersion) {
                 this.notificationHelper.showInfo(
-                    `Title contains illegal characters. All titles will be updated with the sanitized version: "${sanitizedTitle}"`,
+                    `Title was adjusted for the filename. All titles will be updated with the adjusted version: "${filenameTitle}"`,
                 );
-                await this.updateTitlesBasedOnSyncMode(file, sanitizedTitle);
+                await this.updateTitlesBasedOnSyncMode(file, filenameTitle);
             } else {
                 this.notificationHelper.showInfo(
-                    `Title contains illegal characters. Filename will be sanitized to: "${sanitizedTitle}"`,
+                    `Title was adjusted for the filename. Filename will be updated to: "${filenameTitle}"`,
                 );
                 // Only update filename with sanitized version if it's part of sync mode
                 const shouldUpdateFilename =
@@ -553,7 +584,7 @@ export default class FileTitleUpdaterPlugin extends Plugin {
                 const shouldUpdateHeading = this.shouldSyncHeading();
 
                 if (shouldUpdateFilename) {
-                    await this.updateFilename(file, sanitizedTitle);
+                    await this.updateFilename(file, filenameTitle);
                 }
 
                 // Keep original in frontmatter and/or heading if they should be synced

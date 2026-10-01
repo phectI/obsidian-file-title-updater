@@ -5,3 +5,4 @@ main.js.map
 dist/
 /build
 /.claude
+.DS_Store

@@ -58,6 +58,38 @@ export class SettingsTab extends PluginSettingTab {
                     }),
             );
 
+        new Setting(containerEl)
+            .setName("Use filename when frontmatter title is missing")
+            .setDesc(
+                "When syncing from frontmatter, use the filename as the source if the configured frontmatter title field is missing.",
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(
+                        this.plugin.settings
+                            .fallbackToFilenameWhenFrontmatterTitleMissing,
+                    )
+                    .onChange(async (value) => {
+                        this.plugin.settings.fallbackToFilenameWhenFrontmatterTitleMissing =
+                            value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
+        new Setting(containerEl)
+            .setName("Truncate long titles by UTF-8 bytes")
+            .setDesc(
+                "When syncing a title to a filename, truncate it at 241 UTF-8 bytes to avoid filenames that are too long.",
+            )
+            .addToggle((toggle) =>
+                toggle
+                    .setValue(this.plugin.settings.truncateLongTitles)
+                    .onChange(async (value) => {
+                        this.plugin.settings.truncateLongTitles = value;
+                        await this.plugin.saveSettings();
+                    }),
+            );
+
         // Frontmatter configuration section
         new Setting(containerEl).setName("Frontmatter").setHeading();
 
